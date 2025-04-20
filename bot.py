@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from buy import buy, buy_callback  # <-- Import buy feature
 
 # Configuration
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+BOT_TOKEN = "7751080418:AAHML4fdAFjUoR6VDhLKUkDI_YrTL7dJxHY"
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "otp_bot_db"
 

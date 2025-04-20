@@ -1,22 +1,21 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from pymongo import MongoClient
+from buy import buy, buy_callback  # <-- Import buy feature
 
-# Configuration (aap apne credentials se replace karein)
-BOT_TOKEN = "7751080418:AAHML4fdAFjUoR6VDhLKUkDI_YrTL7dJxHY"
+# Configuration
+BOT_TOKEN = "YOUR_BOT_TOKEN"
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "otp_bot_db"
 
-# MongoDB se connection establish karein
 client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 
-# Start command handler
+# /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await update.message.reply_text(f"Hello, {update.effective_user.first_name}! Welcome to OTP Service Bot.")
 
-    # User database entry check or create
     user = db.users.find_one({"telegram_id": user_id})
     if not user:
         db.users.insert_one({
@@ -27,7 +26,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "created_at": update.message.date
         })
 
-# User Balance Check command handler
+# /balance
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = db.users.find_one({"telegram_id": user_id})
@@ -37,12 +36,15 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("User not found, please use /start first.")
 
-# Main function to start the bot
+# Start the bot
 if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
+    # Command handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("balance", balance))
+    app.add_handler(CommandHandler("buy", buy))  # <-- Buy command
+    app.add_handler(CallbackQueryHandler(buy_callback, pattern="^buy_"))  # <-- Callback for buy
 
     print("Bot is running...")
     app.run_polling()

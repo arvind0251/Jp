@@ -4,25 +4,27 @@ import requests
 
 # Country & Service options
 COUNTRIES = {
-    "India": "in",
-    "Russia": "ru"
+    "India": "india",
+    "Russia": "russia"
 }
 
 SERVICES = {
-    "WhatsApp": "wa",
-    "Telegram": "tg",
+    "WhatsApp": "whatsapp",
+    "Telegram": "telegram",
     "OLX": "olx"
 }
 
-API_URL = "https://api.extrasim.net/v1/order"
-API_KEY = "YOUR_API_KEY"  # Replace with actual key
+OPERATOR = "any"  # You can let user select this too, if needed
+
+API_KEY = "a4ac091e88004e00ba43894f854a789d"  # Replace with your 5sim key
+API_URL_TEMPLATE = "https://5sim.net/v1/user/buy/activation/{country}/{operator}/{service}"
 
 # Step 1: Choose Country
 async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton(c, callback_data=f"buy_country|{v}")] for c, v in COUNTRIES.items()]
     await update.message.reply_text("Select a country:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-# Step 2: Choose Service → Buy number
+# Step 2: Choose Service → Buy number from 5sim
 async def buy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -36,18 +38,19 @@ async def buy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data[0] == "buy_service":
         service_code = data[1]
         country_code = context.user_data.get("country")
+        operator = OPERATOR
 
-        response = requests.post(API_URL, headers={
-            "Authorization": f"Bearer {API_KEY}"
-        }, json={
-            "country": country_code,
-            "service": service_code
+        url = API_URL_TEMPLATE.format(country=country_code, operator=operator, service=service_code)
+
+        response = requests.get(url, headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Accept": "application/json"
         })
 
         if response.status_code == 200:
             result = response.json()
-            number = result.get("number")
+            number = result.get("phone")
             order_id = result.get("id")
             await query.edit_message_text(f"Number purchased: {number}\nOrder ID: {order_id}")
         else:
-            await query.edit_message_text("Failed to buy number. Try again.")
+            await query.edit_message_text(f"Failed to buy number: {response.json().get('message', 'Try again')}")
